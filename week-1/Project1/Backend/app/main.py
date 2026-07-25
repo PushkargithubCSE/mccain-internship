@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.api.health import router as health_router
 from app.core.config import settings
+from app.core.logger import app_logger
 
 
 @asynccontextmanager
@@ -13,7 +14,7 @@ async def lifespan(app: FastAPI):
     """
 
     print("Starting AI Customer Support Platform")
-
+    app_logger.info("Starting AI Customer Support Platform")
     # Future:
     # Initialize PostgreSQL
     # Initialize Redis
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
     yield
 
     print("Closing AI Customer Support Platform")
+    app_logger.info("Closing AI Customer Support Platform")
 
     # Future:
     # Close PostgreSQL
@@ -40,3 +42,4 @@ app.include_router(
     health_router,
     prefix=settings.API_V1_PREFIX,
 )
+
