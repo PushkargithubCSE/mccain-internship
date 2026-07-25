@@ -2,10 +2,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api.health import router as health_router
 from app.core.config import settings
 from app.core.logger import app_logger
+from app.api.chat import router as chat_router
 
+from app.core.exceptions import AppException
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,8 +39,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+
 app.include_router(
-    health_router,
+    chat_router,
     prefix=settings.API_V1_PREFIX,
 )
 
+@app.exception_handler(AppException)
+async def app_exception_handler(
+    request: Request,
+    exc: AppException,
+):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "message": exc.detail,
+            "error_code": exc.error_code,
+        },
+    )
