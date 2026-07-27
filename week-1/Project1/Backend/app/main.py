@@ -8,6 +8,11 @@ from app.api.chat import router as chat_router
 
 from app.core.exceptions import AppException
 from app.middleware.logging import LoggingMiddleware
+from app.schemas.base import ApiResponse
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -56,9 +61,18 @@ async def app_exception_handler(
         status_code=exc.status_code,
         content={
             "success": False,
-            "message": exc.detail,
+            "message": exc.message,
             "error_code": exc.error_code,
+            "data": None,
         },
     )
 
 app.add_middleware(LoggingMiddleware)
+
+from app.schemas.base import ApiResponse
+
+return ApiResponse(
+    success=True,
+    message="Dependency Injection Working",
+    data=None
+)
