@@ -7,6 +7,7 @@ from app.core.logger import app_logger
 from app.api.chat import router as chat_router
 
 from app.core.exceptions import AppException
+from app.middleware.logging import LoggingMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,7 +18,7 @@ async def lifespan(app: FastAPI):
     print("Starting AI Customer Support Platform")
     app_logger.info("Starting AI Customer Support Platform")
     # Future:
-    # Initialize PostgreSQL
+    # Initialize PostgreSQL 
     # Initialize Redis
     # Initialize Qdrant
 
@@ -59,3 +60,5 @@ async def app_exception_handler(
             "error_code": exc.error_code,
         },
     )
+
+app.add_middleware(LoggingMiddleware)
