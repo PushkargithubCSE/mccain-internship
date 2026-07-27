@@ -16,6 +16,9 @@ from fastapi.responses import JSONResponse
 from fastapi import HTTPException
 
 from fastapi.middleware.cors import CORSMiddleware
+from app.db.database import Base
+from app.db.database import engine
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -28,6 +31,8 @@ async def lifespan(app: FastAPI):
     # Initialize PostgreSQL 
     # Initialize Redis
     # Initialize Qdrant
+    
+    Base.metadata.create_all(bind=engine)
 
     yield
 

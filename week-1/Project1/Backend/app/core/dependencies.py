@@ -1,12 +1,14 @@
-from typing import Generator
+from sqlalchemy.orm import Session
+
+from app.db.database import SessionLocal
 
 
-def get_db() -> Generator:
-    """
-    Placeholder dependency.
+def get_db():
 
-    Will return a SQLAlchemy Session
-    in Phase 2.
-    """
+    db = SessionLocal()
 
-    yield None
+    try:
+        yield db
+
+    finally:
+        db.close()
