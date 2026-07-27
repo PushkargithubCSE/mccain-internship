@@ -13,7 +13,9 @@ from app.schemas.base import ApiResponse
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from fastapi import HTTPException
 
+from fastapi.middleware.cors import CORSMiddleware
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -69,10 +71,43 @@ async def app_exception_handler(
 
 app.add_middleware(LoggingMiddleware)
 
-from app.schemas.base import ApiResponse
+@app.exception_handler(HTTPException)
+async def http_exception_handler(
+    request: Request,
+    exc: HTTPException,
+):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "message": exc.detail,
+            "data": None,
+        },
+    )
 
-return ApiResponse(
-    success=True,
-    message="Dependency Injection Working",
-    data=None
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(
+    request: Request,
+    exc: Exception,
+):
+    app_logger.exception(exc)
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "message": "Internal Server Error",
+            "data": None,
+        },
+    )
+
+    app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
