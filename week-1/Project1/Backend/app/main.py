@@ -18,6 +18,8 @@ from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.db.database import Base
 from app.db.database import engine
+from app.api.user import router as user_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,7 +33,7 @@ async def lifespan(app: FastAPI):
     # Initialize PostgreSQL 
     # Initialize Redis
     # Initialize Qdrant
-    
+
     Base.metadata.create_all(bind=engine)
 
     yield
@@ -116,3 +118,5 @@ async def unhandled_exception_handler(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(user_router, prefix=settings.API_V1_PREFIX)
+ 

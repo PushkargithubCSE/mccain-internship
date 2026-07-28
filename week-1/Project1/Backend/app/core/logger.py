@@ -8,7 +8,7 @@ logger.add(
     level="INFO",
     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
 )
-
+ 
 logger.add(
     "logs/app.log",
     rotation="10 MB",
@@ -16,5 +16,5 @@ logger.add(
     compression="zip",
     level="INFO",
 )
-
+  
 app_logger = logger
