@@ -22,6 +22,7 @@ from app.api.user import router as user_router
 
 from app.api.auth import router as auth_router
 
+from app.db.redis import redis_client
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,11 +38,15 @@ async def lifespan(app: FastAPI):
     # Initialize Qdrant
 
     Base.metadata.create_all(bind=engine)
+    await redis_client.ping()
+    app_logger.info("Connected to Redis")
 
     yield
 
     print("Closing AI Customer Support Platform")
     app_logger.info("Closing AI Customer Support Platform")
+    await redis_client.aclose()
+    app_logger.info("Redis connection closed")
 
     # Future:
     # Close PostgreSQL
