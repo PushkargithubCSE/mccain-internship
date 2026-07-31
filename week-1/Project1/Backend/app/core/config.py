@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     DATABASE_URL: str
     REDIS_URL: str
+    QDRANT_URL: str
+    QDRANT_API_KEY: str
+    GEMINI_API_KEY: str
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,
