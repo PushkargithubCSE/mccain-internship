@@ -6,7 +6,8 @@ from app.core.exceptions import AppException
 from app.models.user import User
 from app.schemas.base import ApiResponse
 from app.services.rate_limiter import rate_limiter
-
+from app.schemas.chat import ChatRequest, ChatResponse
+from app.services.rag_service import rag_service
 
 router = APIRouter(
     prefix="/chat",
@@ -63,4 +64,21 @@ async def test_rate_limit(
         success=True,
         message=f"Request allowed. Request count: {count}/20",
         data=None,
+    )
+
+@router.post(
+    "/ask",
+    response_model=ApiResponse[ChatResponse],
+)
+async def ask_question(
+    payload: ChatRequest,
+):
+    answer = rag_service.ask(payload.message)
+
+    return ApiResponse(
+        success=True,
+        message="Response generated successfully",
+        data=ChatResponse(
+            answer=answer,
+        ),
     )
