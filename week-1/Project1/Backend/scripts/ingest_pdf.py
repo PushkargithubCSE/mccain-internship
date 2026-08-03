@@ -1,5 +1,8 @@
 from pathlib import Path
 
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from qdrant_client.models import (
     Distance,
     PointStruct,
@@ -8,7 +11,6 @@ from qdrant_client.models import (
 
 from app.db.qdrant import qdrant_client
 from app.services.embedding_service import embedding_service
-from app.services.pdf_service import pdf_service
 
 
 PDF_PATH = Path("data/knowledge_base.pdf")
@@ -25,22 +27,52 @@ def main():
             f"PDF not found: {PDF_PATH}"
         )
 
-    # 1. Extract PDF text
+    # =====================================================
+    # LANGCHAIN CHANGE #1
+    # Instead of pdf_service.extract_text(),
+    # use LangChain's PyPDFLoader.
+    # =====================================================
+
     print("Reading PDF...")
 
-    text = pdf_service.extract_text(PDF_PATH)
+    loader = PyPDFLoader(str(PDF_PATH))
 
-    if not text.strip():
-        raise ValueError(
-            "No text could be extracted from PDF."
-        )
+    documents = loader.load()
 
-    # 2. Create chunks
-    chunks = pdf_service.chunk_text(text)
+    # =====================================================
+    # LANGCHAIN CHANGE #2
+    # Instead of pdf_service.chunk_text(),
+    # use RecursiveCharacterTextSplitter.
+    # =====================================================
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=800,
+        chunk_overlap=100,
+        separators=[
+            "\n\n",
+            "\n",
+            ". ",
+            " ",
+            "",
+        ],
+    )
+
+    split_documents = splitter.split_documents(
+        documents
+    )
+
+    chunks = [
+        document.page_content
+        for document in split_documents
+    ]
 
     print(f"Chunks created: {len(chunks)}")
 
-    # 3. Generate embeddings
+    # =====================================================
+    # Existing code (UNCHANGED)
+    # Your own embedding service is still used.
+    # =====================================================
+
     print("Generating embeddings...")
 
     embeddings = embedding_service.embed_documents(
@@ -49,7 +81,10 @@ def main():
 
     print(f"Embeddings generated: {len(embeddings)}")
 
-    # 4. Recreate collection
+    # =====================================================
+    # Existing Qdrant logic (UNCHANGED)
+    # =====================================================
+
     if qdrant_client.collection_exists(
         COLLECTION_NAME
     ):
@@ -65,7 +100,6 @@ def main():
         ),
     )
 
-    # 5. Build Qdrant points
     points = []
 
     for index, (chunk, embedding) in enumerate(
@@ -83,7 +117,6 @@ def main():
             )
         )
 
-    # 6. Store vectors
     qdrant_client.upsert(
         collection_name=COLLECTION_NAME,
         points=points,
