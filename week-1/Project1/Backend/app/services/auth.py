@@ -18,6 +18,10 @@ class AuthService:
         self.user_repo = UserRepository(db)
 
     async def login(self, data: LoginRequest):
+        email = data.email.lower()
+
+        if not email.endswith("@mccain.com"):
+            raise AppException(status_code=403,message="Only McCain employees can access this application.",error_code="INVALID_EMAIL_DOMAIN",)
         user = self.user_repo.get_by_email(data.email)
 
         if not user or not verify_password(
