@@ -1,0 +1,145 @@
+version: "3.9"
+
+x-app-env: &app-env
+  ENV: development
+  DEBUG: "false"
+  API_V1_PREFIX: /api/v1
+
+  POSTGRES_USER: identity
+  POSTGRES_PASSWORD: identity_pass
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  POSTGRES_DB: identity_db
+
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  REDIS_DB: 0
+
+  JWT_SECRET_KEY: ${JWT_SECRET_KEY:-CHANGE_ME_IN_PRODUCTION_super_secret_key}
+  JWT_ALGORITHM: HS256
+  ACCESS_TOKEN_EXPIRE_MINUTES: 15
+  REFRESH_TOKEN_EXPIRE_DAYS: 7
+
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_DEFAULT_MAX_REQUESTS: 100
+  RATE_LIMIT_DEFAULT_WINDOW_SECONDS: 60
+  RATE_LIMIT_LOGIN_MAX_REQUESTS: 5
+  RATE_LIMIT_LOGIN_WINDOW_SECONDS: 60
+  RATE_LIMIT_REGISTER_MAX_REQUESTS: 3
+  RATE_LIMIT_REGISTER_WINDOW_SECONDS: 60
+
+  KAFKA_ENABLED: "true"
+  KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+  KAFKA_TOPIC_USER_EVENTS: identity.user.events
+
+  GRPC_ENABLED: "true"
+  GRPC_PORT: 50051
+
+networks:
+  identity-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  redpanda_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: identity-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: identity
+      POSTGRES_PASSWORD: identity_pass
+      POSTGRES_DB: identity_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U identity -d identity_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - identity-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: identity-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - identity-net
+
+  # Single-binary, Kafka-API-compatible broker. Swap for Confluent/Apache
+  # Kafka + Zookeeper in production if that's the platform standard.
+  redpanda:
+    image: redpandadata/redpanda:v24.2.7
+    container_name: identity-redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=512M
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - identity-net
+
+  migrate:
+    build: .
+    container_name: identity-migrate
+    environment:
+      <<: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    networks:
+      - identity-net
+
+  identity-service:
+    build: .
+    container_name: identity-service
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    ports:
+      - "8000:8000"   # REST API
+      - "50051:50051" # gRPC (internal token verification for other services)
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - identity-net

@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package identity;
+
+// Internal service used by OTHER McCain platform microservices to verify
+// JWTs issued by this identity service, without each of them needing the
+// JWT secret or re-implementing token logic. Kept as gRPC (not REST)
+// because this is a high-frequency, low-latency, service-to-service call
+// that sits on the hot path of every authenticated request in the platform.
+service IdentityService {
+  rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+}
+
+message VerifyTokenRequest {
+  string access_token = 1;
+}
+
+message VerifyTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string role = 3;
+  string error = 4;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  bool found = 1;
+  string user_id = 2;
+  string email = 3;
+  string role = 4;
+  bool is_active = 5;
+}
