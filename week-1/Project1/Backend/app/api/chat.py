@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
@@ -6,7 +7,7 @@ from app.core.exceptions import AppException
 from app.models.user import User
 from app.schemas.base import ApiResponse
 from app.services.rate_limiter import rate_limiter
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import ChatRequest
 from app.services.rag_service import rag_service
 
 router = APIRouter(
@@ -68,17 +69,18 @@ async def test_rate_limit(
 
 @router.post(
     "/ask",
-    response_model=ApiResponse[ChatResponse],
+    response_class=StreamingResponse,
+    responses={
+        200: {
+            "content": {"text/plain": {}},
+            "description": "A streamed LLM response.",
+        },
+    },
 )
 async def ask_question(
     payload: ChatRequest,
 ):
-    answer = rag_service.ask(payload.message)
-
-    return ApiResponse(
-        success=True,
-        message="Response generated successfully",
-        data=ChatResponse(
-            answer=answer,
-        ),
+    return StreamingResponse(
+        rag_service.astream(payload.message),
+        media_type="text/plain; charset=utf-8",
     )

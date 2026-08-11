@@ -64,15 +64,19 @@ export default function Home() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
-    const question = input;
+    const question = input.trim();
 
     setMessages((prev) => [
       ...prev,
       {
         role: "user",
         text: question,
+      },
+      {
+        role: "assistant",
+        text: "",
       },
     ]);
 
@@ -84,33 +88,101 @@ export default function Home() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem(
-            "access_token"
-          )}`,
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
         body: JSON.stringify({
           message: question,
         }),
       });
 
-      const data = await response.json();
-      const answer = data?.data?.answer ?? "❌ No answer received from the server.";
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+      }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: answer,
-        },
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: "❌ Unable to connect to server.",
-        },
-      ]);
+      if (!response.body) {
+        throw new Error("The server returned an empty response");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      let answer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        const chunk = decoder.decode(value, {
+          stream: true,
+        });
+
+        if (!chunk) {
+          continue;
+        }
+
+        for (const character of chunk) {
+          answer += character;
+
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastIndex = updated.length - 1;
+
+            if (updated[lastIndex]?.role === "assistant") {
+              updated[lastIndex] = {
+                role: "assistant",
+                text: answer,
+              };
+            }
+
+            return updated;
+          });
+
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+      }
+
+      const remaining = decoder.decode();
+
+      if (remaining) {
+        answer += remaining;
+
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+
+          if (updated[lastIndex]?.role === "assistant") {
+            updated[lastIndex] = {
+              role: "assistant",
+              text: answer,
+            };
+          }
+
+          return updated;
+        });
+      }
+
+      if (!answer.trim()) {
+        throw new Error("The server returned an empty response");
+      }
+    } catch (error) {
+      console.error("Streaming error:", error);
+
+      setMessages((prev) => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+
+        if (updated[lastIndex]?.role === "assistant") {
+          updated[lastIndex] = {
+            role: "assistant",
+            text: "❌ Unable to connect to server.",
+          };
+        }
+
+        return updated;
+      });
     } finally {
       setLoading(false);
     }
@@ -182,15 +254,6 @@ export default function Home() {
               </div>
             </div>
           ))}
-
-          {loading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-200 px-5 py-3 rounded-2xl rounded-bl-sm">
-                <p className="font-semibold mb-1">McCain AI</p>
-                <p className="animate-pulse text-black">Thinking...</p>
-              </div>
-            </div>
-          )}
 
           <div ref={bottomRef} />
         </div>

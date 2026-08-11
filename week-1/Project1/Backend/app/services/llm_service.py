@@ -21,5 +21,9 @@ class LLMService:
 
         return chain.invoke(prompt)
 
+    async def astream(self, prompt: str):
+        chain = self.llm | self.output_parser
+        async for chunk in chain.astream(prompt):
+            yield chunk
 
 llm_service = LLMService()

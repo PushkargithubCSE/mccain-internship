@@ -1,11 +1,13 @@
 from app.services.retrieval_service import retrieval_service
 from app.services.llm_service import llm_service
+from collections.abc import AsyncIterator
+
 from langchain_core.prompts import PromptTemplate
 
 
 class RAGService:
 
-    def ask(self, question: str) -> str:
+    async def astream(self, question: str) -> AsyncIterator[str]:
 
         # 1. Retrieve relevant PDF chunks
         results = retrieval_service.search(
@@ -76,7 +78,9 @@ Answer:
         )
 
         # 4. Send context + question to LLM
-        return llm_service.generate(prompt)
+        async for chunk in llm_service.astream(prompt):
+
+            yield chunk
 
 
 rag_service = RAGService()
