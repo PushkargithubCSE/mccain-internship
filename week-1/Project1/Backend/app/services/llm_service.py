@@ -30,8 +30,8 @@ class LLMService:
 
         prompt = f"""
 You are a search-query optimizer for the McCain Foods
-Code of Conduct knowledge base.
-
+Code of Conduct knowledge base document
+.
 Your job is to transform a user's question into a
 clear, specific search query that will retrieve the
 most relevant policy information.
