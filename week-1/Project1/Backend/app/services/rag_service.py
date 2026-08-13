@@ -1,6 +1,7 @@
 import time
 from collections.abc import AsyncIterator
-
+from uuid import UUID
+from app.services.conversation_service import conversation_service
 from langchain_core.prompts import PromptTemplate
 
 from app.services.retrieval_service import retrieval_service
@@ -12,6 +13,7 @@ class RAGService:
     async def astream(
         self,
         question: str,
+        conversation_id: UUID | None = None,
     ) -> AsyncIterator[str]:
 
         # =====================================================
@@ -25,9 +27,19 @@ class RAGService:
         # =====================================================
 
         rewrite_start = time.perf_counter()
-
-        search_query = llm_service.rewrite_query(
-            question
+        history = []
+        if conversation_id:
+            history = await conversation_service.get_history(
+                conversation_id
+            )
+            await conversation_service.add_message(
+                conversation_id=conversation_id,
+                role="user",
+                content=question,
+            )
+        search_query = await llm_service.rewrite_query(
+            question=question,
+            history=history,
         )
 
         rewrite_time = (
@@ -664,10 +676,11 @@ Answer:
         llm_start = time.perf_counter()
 
         first_token = True
-
+        answer_parts = []
         async for chunk in llm_service.astream(
             prompt
         ):
+            answer_parts.append(chunk)
 
             # -------------------------------------------------
             # FIRST TOKEN / TTFT
@@ -706,7 +719,14 @@ Answer:
         # =====================================================
         # 5. TOTAL GENERATION TIME
         # =====================================================
-
+        if conversation_id:
+            answer = "".join(answer_parts)
+            
+            await conversation_service.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=answer,
+            )
         total_time = (
             time.perf_counter()
             - total_start

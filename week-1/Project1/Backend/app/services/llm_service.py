@@ -16,74 +16,101 @@ class LLMService:
         self.output_parser = StrOutputParser()
 
     def generate(self, prompt: str) -> str:
-
         chain = self.llm | self.output_parser
 
         return chain.invoke(prompt)
 
     async def astream(self, prompt: str):
         chain = self.llm | self.output_parser
+
         async for chunk in chain.astream(prompt):
             yield chunk
 
-    def rewrite_query(self, question: str) -> str:
+    async def rewrite_query(
+        self,
+        question: str,
+        history: list[dict] | None = None,
+    ) -> str:
+
+        history = history or []
+
+        history_text = "\n".join(
+            f"{message['role']}: {message['content']}"
+            for message in history
+        )
 
         prompt = f"""
 You are a search-query optimizer for the McCain Foods
-Code of Conduct knowledge base document
-.
-Your job is to transform a user's question into a
-clear, specific search query that will retrieve the
-most relevant policy information.
+Code of Conduct knowledge base.
+
+Your job is to transform the user's current question
+into a clear, specific, self-contained search query
+that will retrieve the most relevant policy information.
+
+Conversation history:
+{history_text}
+
+Current user question:
+{question}
 
 Rules:
 
 1. Preserve the user's original intent.
-2. Do not answer the question.
-3. Do not invent facts.
-4. Do not add policy information that is not present
-   in the user's question.
-5. Expand vague references when possible.
-6. Remove conversational filler.
-7. Return ONLY the rewritten search query.
-8. If the question is already clear and specific,
-   return it unchanged.
+2. Use conversation history only to resolve references
+   such as "it", "that", "this", "one", "they", or "then".
+3. Make the rewritten query self-contained.
+4. Do not answer the question.
+5. Do not invent facts.
+6. Do not add policy information that cannot be
+   inferred from the conversation.
+7. Remove conversational filler.
+8. Return ONLY the rewritten search query.
+9. If the current question is already clear and
+   self-contained, return it unchanged.
 
 Examples:
 
-User:
-"What about gifts?"
+Conversation:
+User: What does the Code say about gifts?
+Assistant: The Code provides guidance about gifts...
+
+Current question:
+Can I accept one from a supplier?
 
 Rewrite:
-"McCain Foods policy regarding gifts"
+McCain Foods policy on accepting gifts from suppliers
 
-User:
-"Can I accept one from a supplier?"
+Conversation:
+User: What does the Code say about conflicts of interest?
+Assistant: The Code provides guidance on conflicts...
 
-Rewrite:
-"McCain Foods policy on accepting gifts from suppliers"
-
-User:
-"What happens if I report something?"
+Current question:
+What about financial interests?
 
 Rewrite:
-"McCain Foods Code of Conduct process for reporting
-ethical concerns"
+McCain Foods Code of Conduct policy on financial conflicts of interest
 
-User:
-"What is the policy on conflicts of interest?"
+Conversation:
+User: What happens if I report something?
+Assistant: The Code explains reporting ethical concerns...
+
+Current question:
+Can it be anonymous?
 
 Rewrite:
-"What is McCain Foods policy on conflicts of interest?"
+McCain Foods Code of Conduct policy on anonymous reporting of ethical concerns
 
-User question:
+Current question:
 {question}
 
 Rewritten search query:
 """
+
         chain = self.llm | self.output_parser
-        rewritten = chain.invoke(prompt)
-        return rewritten.strip()
+
+        rewritten = await chain.ainvoke(prompt)
+
+        return rewritten.strip() or question
 
 
 llm_service = LLMService()

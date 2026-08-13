@@ -78,9 +78,12 @@ async def test_rate_limit(
     },
 )
 async def ask_question(
-    payload: ChatRequest,
-):
+    payload: ChatRequest,):  
+
+    conversation_id = payload.conversation_id or None 
+
     return StreamingResponse(
-        rag_service.astream(payload.message),
+        rag_service.astream(question=payload.message, conversation_id=conversation_id,),
         media_type="text/plain; charset=utf-8",
+        headers={"X-Conversation-ID": str(conversation_id),},
     )
