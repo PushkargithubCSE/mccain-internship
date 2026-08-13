@@ -80,7 +80,7 @@ async def test_rate_limit(
 async def ask_question(
     payload: ChatRequest,):  
 
-    conversation_id = payload.conversation_id or None 
+    conversation_id = payload.conversation_id or None   
 
     return StreamingResponse(
         rag_service.astream(question=payload.message, conversation_id=conversation_id,),

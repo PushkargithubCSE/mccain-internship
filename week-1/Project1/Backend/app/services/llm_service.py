@@ -112,5 +112,50 @@ Rewritten search query:
 
         return rewritten.strip() or question
 
+    async def generate_hypothetical_document(
+        self,
+        question: str,
+    ) -> str:
+
+        prompt = f"""
+You are generating a hypothetical policy passage
+for semantic retrieval in the McCain Foods Code of Conduct
+knowledge base.
+
+The generated passage is ONLY a retrieval aid.
+It is NOT an authoritative McCain policy and will NOT
+be shown directly to the user.
+
+Generate a concise hypothetical passage that describes
+the kind of policy guidance that would likely be relevant
+to the user's question.
+
+Rules:
+
+1. Focus on the concepts and terminology relevant to
+   the user's question.
+2. Stay within the scope of the McCain Foods Code of Conduct.
+3. Do not mention that you are an AI.
+4. Do not use conversational language.
+5. Do not invent specific dollar amounts, contact details,
+   deadlines, approval limits, or procedures.
+6. Do not introduce unrelated policy topics.
+7. Do not provide unnecessary details that are not needed
+   for semantic retrieval.
+8. Return ONLY the hypothetical policy passage.
+9. Keep the passage concise.
+
+User question:
+{question}
+
+Hypothetical policy passage:
+"""
+
+        chain = self.llm | self.output_parser
+
+        hypothetical_document = await chain.ainvoke(prompt)
+
+        return hypothetical_document.strip() or question
+
 
 llm_service = LLMService()

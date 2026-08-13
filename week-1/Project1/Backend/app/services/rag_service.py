@@ -63,13 +63,24 @@ class RAGService:
         )
 
         # =====================================================
-        # 1. RETRIEVAL
+        # 1. HYDE + RETRIEVAL
         # =====================================================
 
         retrieval_start = time.perf_counter()
 
+        hypothetical_document = (
+            await llm_service.generate_hypothetical_document(
+                question=search_query,
+            )
+        )
+
+        print(
+            f"[RAG] HyDE document: "
+            f"{hypothetical_document}"
+        )
+
         results = retrieval_service.search(
-            search_query,
+            hypothetical_document,
             limit=3,
         )
 
