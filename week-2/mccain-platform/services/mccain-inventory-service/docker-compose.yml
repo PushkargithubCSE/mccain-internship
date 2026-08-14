@@ -1,0 +1,64 @@
+version: "3.9"
+
+x-app-env: &app-env
+  POSTGRES_USER: inventory
+  POSTGRES_PASSWORD: inventory_pass
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: 5432
+  POSTGRES_DB: inventory_db
+
+networks:
+  inventory-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: inventory-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory_pass
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5433:5432"  # host port 5433 to avoid clashing with the identity service's postgres on 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory -d inventory_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - inventory-net
+
+  migrate:
+    build: .
+    container_name: inventory-migrate
+    environment:
+      <<: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["alembic", "upgrade", "head"]
+    networks:
+      - inventory-net
+
+  inventory-service:
+    build: .
+    container_name: inventory-service
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - inventory-net
