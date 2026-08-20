@@ -1,0 +1,28 @@
+# Data
+data/raw/
+data/processed/
+
+# Checkpoints & experiment artifacts
+checkpoints/
+experiments/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Colab / Drive
+drive/
+
+# Secrets
+kaggle.json
+.env
+wandb/
+
+# OS
+.DS_Store
