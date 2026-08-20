@@ -1,6 +1,4 @@
-# Data
-data/raw/
-data/processed/
+
 
 # Checkpoints & experiment artifacts
 checkpoints/
