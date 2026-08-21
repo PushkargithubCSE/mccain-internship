@@ -23,4 +23,4 @@ kaggle.json
 wandb/
 
 # OS
-.DS_Store
+.DS_Store.env
