@@ -72,9 +72,9 @@ Each week's folder may contain:
 | ------- | ----------------------------------- | ---------------- | -------------- |
 | Week 01 | Mccain Employee Assistant and support | RAG , LLM integrations ,Langchain | ✅ Completed    |
 | Week 02 | Backend for Mccain foods distribution | Python , Microservices , RestAPI , grpc  | ✅ Completed    |
-| Week 03 | Fine-Tuning a Vision Foundation Model for Mccain Potato Quality | —              | 🚧 In Progress |
-| Week 04 | Project / Experiment                | —                | ⏳ Upcoming     |
-| Week 05 | Project / Experiment                | —                | ⏳ Upcoming     |
+| Week 03-08 | Fine-Tuning a Vision Foundation Model for damaged box Quality | —              | 🚧 In Progress |
+| Week 07 | Project / Experiment                | —                | ⏳ Upcoming     |
+| Week 08 | Project / Experiment                | —                | ⏳ Upcoming     |
 | ...     | ...                                 | ...              | ...            |
 
 > This table will be updated throughout the internship as new projects and milestones are completed.

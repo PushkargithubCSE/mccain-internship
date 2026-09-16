@@ -1,8 +1,14 @@
-
-
 # Checkpoints & experiment artifacts
 checkpoints/
 experiments/
+
+# Dataset
+dataset/
+datasets/
+notebooks - rfdetr/new-2/
+
+# Test images
+custom_test_images/
 
 # Notebook checkpoints
 .ipynb_checkpoints/
@@ -23,4 +29,4 @@ kaggle.json
 wandb/
 
 # OS
-.DS_Store.env
+.DS_Store
